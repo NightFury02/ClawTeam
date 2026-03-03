@@ -1,0 +1,115 @@
+# Task Originator Config
+#
+# Defines bots and scenarios for continuously generating tasks.
+# Used by originate.py to feed the TaskRouter with pending tasks.
+
+api_url: "http://localhost:3000"
+invite_code: "TEST2024"
+user_api_key: "clawteam_sk_example_key"
+
+# Interval between task delegations (seconds)
+interval: 10
+
+# ── Your real bot ─────────────────────────────────────────────
+# Set this to your OpenClaw bot's ID registered in ClawTeam.
+# All test scripts will default to delegating tasks to this bot,
+# so the TaskRouter can route them to your OpenClaw sessions.
+#
+# Find your bot ID:  python originate.py --list-bots
+#                    or check the dashboard at http://localhost:5173
+#
+# Leave empty or comment out to use self-contained mode
+# (registers a disposable target bot instead).
+target_bot_id: "c5ca4fd7-7825-4f98-9092-9f0f15cb5a81"
+
+# Originator bot — the one that delegates tasks
+originator:
+  name: "TaskOriginator"
+  email: "originator@test.com"
+  capabilities:
+    - name: "orchestrate"
+      description: "Orchestrate multi-step workflows"
+      async: false
+      estimatedTime: "5s"
+
+# Target bot — receives delegated tasks (TaskRouter routes to its session)
+target:
+  name: "TaskExecutor"
+  email: "executor@test.com"
+  capabilities:
+    - name: "code_review"
+      description: "Review code changes"
+      async: false
+      estimatedTime: "30s"
+    - name: "analyze_data"
+      description: "Statistical analysis on data"
+      async: false
+      estimatedTime: "10s"
+    - name: "generate_report"
+      description: "Generate reports from results"
+      async: false
+      estimatedTime: "15s"
+
+# Scenarios — which task sequences to generate
+# Weights determine how often each scenario is picked
+scenarios:
+  - name: "new_code_review"
+    weight: 3
+    tasks:
+      - type: "new"
+        capability: "code_review"
+        prompt: "Review the TaskRouter implementation for correctness and edge cases"
+        title: "Review TaskRouter implementation"
+        parameters:
+          repo: "clawteam-platform"
+          branch: "feature/task-router"
+          description: "Review the TaskRouter implementation"
+
+  - name: "new_data_analysis"
+    weight: 2
+    tasks:
+      - type: "new"
+        capability: "analyze_data"
+        prompt: "Analyze Feb 2026 metrics focusing on latency, error rate, and throughput"
+        title: "Analyze Feb 2026 metrics"
+        parameters:
+          dataset: "metrics-2026-02"
+          columns: ["latency_ms", "error_rate", "throughput"]
+
+  - name: "sub_task_chain"
+    weight: 2
+    tasks:
+      - type: "new"
+        capability: "code_review"
+        prompt: "Perform an initial code review of the clawteam-platform repository"
+        title: "Initial code review"
+        parameters:
+          repo: "clawteam-platform"
+          description: "Initial review"
+      - type: "sub-task"
+        delay: 5
+        capability: "code_review"
+        prompt: "Please also check error handling in src/routing/"
+        title: "Review error handling"
+        parameters:
+          feedback: "Please also check error handling"
+          scope: "src/routing/"
+
+  - name: "sub_task_correction"
+    weight: 1
+    tasks:
+      - type: "new"
+        capability: "generate_report"
+        prompt: "Generate a weekly status report in PDF format"
+        title: "Weekly Status Report (PDF)"
+        parameters:
+          format: "pdf"
+          title: "Weekly Status Report"
+      - type: "sub-task"
+        delay: 5
+        capability: "generate_report"
+        prompt: "Change the report format to markdown instead of PDF"
+        title: "Change report format to markdown"
+        parameters:
+          correction: "Change format to markdown instead of PDF"
+          format: "markdown"

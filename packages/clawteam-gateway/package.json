@@ -1,0 +1,27 @@
+{
+  "name": "@clawteam/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "task-status": "tsx src/monitoring/cli-status.ts"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.0",
+    "fastify": "^5.0.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^13.0.0",
+    "pino-roll": "^3.0.0",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.2.0"
+  }
+}

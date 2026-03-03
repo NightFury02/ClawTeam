@@ -1,0 +1,13 @@
+{
+  "id": "clawteam-auto-tracker",
+  "name": "ClawTeam Auto Tracker",
+  "version": "1.0.0",
+  "description": "Auto create tasks and track sessions on ClawTeam sessions_spawn",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "enabled": { "type": "boolean", "default": true },
+      "gatewayUrl": { "type": "string", "default": "http://localhost:3100" }
+    }
+  }
+}

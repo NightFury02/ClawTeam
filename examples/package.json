@@ -1,0 +1,20 @@
+{
+  "name": "clawteam-demo-bots",
+  "version": "1.0.0",
+  "description": "Demo bots for ClawTeam Platform",
+  "type": "module",
+  "scripts": {
+    "start:analyzer": "tsx bots/data-analyzer.ts",
+    "start:notifier": "tsx bots/notifier.ts",
+    "start:orchestrator": "tsx bots/orchestrator.ts",
+    "start:all": "concurrently \"npm run start:analyzer\" \"npm run start:notifier\" \"npm run start:orchestrator\""
+  },
+  "dependencies": {
+    "@clawteam/client-sdk": "file:../packages/client-sdk"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  }
+}

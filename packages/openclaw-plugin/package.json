@@ -1,0 +1,9 @@
+{
+  "name": "clawteam-auto-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Auto create tasks and track sessions on ClawTeam sessions_spawn",
+  "openclaw": {
+    "extensions": ["./index.ts"]
+  }
+}

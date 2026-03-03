@@ -1,0 +1,508 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Global enhancements ───────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background-color: rgba(0, 122, 255, 0.2);
+  color: inherit;
+}
+
+/* Custom scrollbar — thin, rounded, translucent */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/*
+ * Apple-style semantic color tokens.
+ * Components use standard Tailwind classes (bg-white, text-gray-900, etc.)
+ * and these variables + @layer overrides make dark mode work automatically.
+ */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Apple Light */
+  --color-bg: #f5f5f7;
+  --color-card: #ffffff;
+  --color-card-alt: #f5f5f7;
+  --color-card-hover: #ebebed;
+  --color-border: #d2d2d7;
+  --color-border-light: #ebebed;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #424245;
+  --color-text-muted: #86868b;
+  --color-text-faint: #b8b8be;
+
+  /* Status badge backgrounds — light */
+  --color-green-bg: #d4f5d4;
+  --color-green-text: #1a7a1a;
+  --color-red-bg: #fde0e0;
+  --color-red-text: #a82020;
+  --color-yellow-bg: #fff3d4;
+  --color-yellow-text: #8a5200;
+  --color-blue-bg: #e0ecff;
+  --color-blue-text: #003d80;
+  --color-purple-bg: #ede0ff;
+  --color-purple-text: #5e2d91;
+  --color-orange-bg: #fff0e0;
+  --color-orange-text: #8a5200;
+  --color-cyan-bg: #e0f7fa;
+  --color-cyan-text: #006064;
+  --color-indigo-bg: #e8eaf6;
+  --color-indigo-text: #283593;
+
+  /* Emerald (human input responses) */
+  --color-emerald-bg: #d1fae5;
+  --color-emerald-text: #065f46;
+
+  /* Amber (waiting states) */
+  --color-amber-bg: #fef3c7;
+  --color-amber-text: #92400e;
+
+  /* Primary */
+  --color-primary-light: #e0ecff;
+  --color-primary: #007AFF;
+  --color-primary-hover: #0066d6;
+  --color-primary-text: #0052ab;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  color-scheme: light;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Apple Dark — true black elevated surfaces, vibrant accents */
+.dark {
+  --color-bg: #000000;
+  --color-card: #1c1c1e;
+  --color-card-alt: #000000;
+  --color-card-hover: #2c2c2e;
+  --color-border: #38383a;
+  --color-border-light: #2c2c2e;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-muted: #86868b;
+  --color-text-faint: #48484a;
+
+  /* Status badge backgrounds — dark (muted, translucent feel) */
+  --color-green-bg: #0a3d0a;
+  --color-green-text: #30d158;
+  --color-red-bg: #3d0a0a;
+  --color-red-text: #ff453a;
+  --color-yellow-bg: #3d2e0a;
+  --color-yellow-text: #ffd60a;
+  --color-blue-bg: #0a1e3d;
+  --color-blue-text: #64d2ff;
+  --color-purple-bg: #2a0a3d;
+  --color-purple-text: #bf5af2;
+  --color-orange-bg: #3d1e0a;
+  --color-orange-text: #ff9f0a;
+  --color-cyan-bg: #0a2e3d;
+  --color-cyan-text: #64d2ff;
+  --color-indigo-bg: #0a0a3d;
+  --color-indigo-text: #5e5ce6;
+
+  /* Emerald — dark */
+  --color-emerald-bg: #064e3b;
+  --color-emerald-text: #34d399;
+
+  /* Amber — dark */
+  --color-amber-bg: #451a03;
+  --color-amber-text: #fbbf24;
+
+  /* Primary — Apple dark mode uses brighter blue */
+  --color-primary-light: #0a1e3d;
+  --color-primary: #0a84ff;
+  --color-primary-hover: #409cff;
+  --color-primary-text: #64d2ff;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/*
+ * Remap Tailwind utility classes to CSS variables.
+ * This makes dark mode work without adding dark: to every component.
+ */
+@layer base {
+  /* Background overrides */
+  .bg-white          { background-color: var(--color-card) !important; }
+  .bg-gray-50        { background-color: var(--color-card-alt) !important; }
+  .bg-gray-100       { background-color: var(--color-card-hover) !important; }
+
+  /* Text overrides */
+  .text-gray-900     { color: var(--color-text-primary) !important; }
+  .text-gray-800     { color: var(--color-text-primary) !important; }
+  .text-gray-700     { color: var(--color-text-secondary) !important; }
+  .text-gray-600     { color: var(--color-text-secondary) !important; }
+  .text-gray-500     { color: var(--color-text-muted) !important; }
+  .text-gray-400     { color: var(--color-text-faint) !important; }
+
+  /* Border overrides */
+  .border-gray-200   { border-color: var(--color-border) !important; }
+  .border-gray-100   { border-color: var(--color-border-light) !important; }
+
+  /* Status badge overrides */
+  .bg-green-100      { background-color: var(--color-green-bg) !important; }
+  .text-green-800    { color: var(--color-green-text) !important; }
+  .bg-red-100        { background-color: var(--color-red-bg) !important; }
+  .text-red-800      { color: var(--color-red-text) !important; }
+  .bg-yellow-100     { background-color: var(--color-yellow-bg) !important; }
+  .text-yellow-800   { color: var(--color-yellow-text) !important; }
+  .bg-blue-100       { background-color: var(--color-blue-bg) !important; }
+  .text-blue-800     { color: var(--color-blue-text) !important; }
+  .bg-purple-100     { background-color: var(--color-purple-bg) !important; }
+  .text-purple-800   { color: var(--color-purple-text) !important; }
+  .bg-orange-100     { background-color: var(--color-orange-bg) !important; }
+  .text-orange-800   { color: var(--color-orange-text) !important; }
+  .bg-cyan-100       { background-color: var(--color-cyan-bg) !important; }
+  .text-cyan-800     { color: var(--color-cyan-text) !important; }
+  .bg-indigo-100     { background-color: var(--color-indigo-bg) !important; }
+  .text-indigo-800   { color: var(--color-indigo-text) !important; }
+
+  /* Emerald overrides */
+  .bg-emerald-50     { background-color: var(--color-emerald-bg) !important; }
+  .bg-emerald-100    { background-color: var(--color-emerald-bg) !important; }
+  .text-emerald-700  { color: var(--color-emerald-text) !important; }
+  .text-emerald-800  { color: var(--color-emerald-text) !important; }
+
+  /* Amber overrides */
+  .bg-amber-100      { background-color: var(--color-amber-bg) !important; }
+  .text-amber-700    { color: var(--color-amber-text) !important; }
+
+  /* Primary overrides */
+  .bg-primary-100    { background-color: var(--color-primary-light) !important; }
+  .text-primary-700  { color: var(--color-primary-text) !important; }
+  .bg-primary-600    { background-color: var(--color-primary) !important; }
+  .hover\:bg-primary-700:hover { background-color: var(--color-primary-hover) !important; }
+  .text-primary-600  { color: var(--color-primary) !important; }
+  .hover\:text-primary-700:hover { color: var(--color-primary-hover) !important; }
+
+  /* Warning bar */
+  .bg-yellow-50      { background-color: var(--color-yellow-bg) !important; }
+  .border-yellow-200 { border-color: var(--color-yellow-text) !important; }
+  .text-yellow-800   { color: var(--color-yellow-text) !important; }
+  .text-yellow-700   { color: var(--color-yellow-text) !important; }
+
+  /* Code/result blocks */
+  .bg-green-50       { background-color: var(--color-green-bg) !important; }
+  .bg-red-50         { background-color: var(--color-red-bg) !important; }
+  .bg-purple-50      { background-color: var(--color-purple-bg) !important; }
+  .bg-blue-50        { background-color: var(--color-blue-bg) !important; }
+
+  /* Gray-200 (skeletons, badges, tree lines) */
+  .bg-gray-200       { background-color: var(--color-border-light) !important; }
+
+  /* Divider overrides */
+  .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-border) !important; }
+  .divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-border-light) !important; }
+
+  /* Red text shades */
+  .text-red-600      { color: var(--color-red-text) !important; }
+  .text-red-700      { color: var(--color-red-text) !important; }
+
+  /* Green text shades */
+  .text-green-600    { color: var(--color-green-text) !important; }
+  .text-green-700    { color: var(--color-green-text) !important; }
+
+  /* Amber overrides */
+  .bg-amber-50       { background-color: var(--color-yellow-bg) !important; }
+  .text-amber-800    { color: var(--color-yellow-text) !important; }
+  .text-amber-900    { color: var(--color-yellow-text) !important; }
+
+  /* Blue text */
+  .text-blue-700     { color: var(--color-blue-text) !important; }
+  .text-blue-800     { color: var(--color-blue-text) !important; }
+
+  /* Purple text shades */
+  .text-purple-700   { color: var(--color-purple-text) !important; }
+  .text-purple-900   { color: var(--color-purple-text) !important; }
+
+  /* Hover state overrides — Tailwind hover: variants are separate selectors */
+  .hover\:bg-gray-50:hover   { background-color: var(--color-card-alt) !important; }
+  .hover\:bg-gray-100:hover  { background-color: var(--color-card-hover) !important; }
+  .hover\:bg-gray-200:hover  { background-color: var(--color-border) !important; }
+  .hover\:bg-red-100:hover   { background-color: var(--color-red-bg) !important; }
+  .hover\:bg-blue-100:hover  { background-color: var(--color-blue-bg) !important; }
+  .hover\:bg-green-100:hover { background-color: var(--color-green-bg) !important; }
+  .hover\:bg-yellow-100:hover { background-color: var(--color-yellow-bg) !important; }
+  .hover\:bg-red-50:hover    { background-color: var(--color-red-bg) !important; }
+  .hover\:bg-green-50:hover  { background-color: var(--color-green-bg) !important; }
+  .hover\:bg-blue-50:hover   { background-color: var(--color-blue-bg) !important; }
+  .hover\:bg-amber-50:hover  { background-color: var(--color-yellow-bg) !important; }
+  .hover\:bg-purple-50:hover { background-color: var(--color-purple-bg) !important; }
+  .hover\:bg-cyan-100:hover  { background-color: var(--color-cyan-bg) !important; }
+  .hover\:bg-emerald-100:hover { background-color: var(--color-emerald-bg) !important; }
+
+  /* Hover text overrides */
+  .hover\:text-gray-900:hover { color: var(--color-text-primary) !important; }
+  .hover\:text-gray-700:hover { color: var(--color-text-secondary) !important; }
+}
+
+/* Card shadow — applies to all card-like elements */
+@layer components {
+  .bg-white {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Glassmorphism utility */
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .dark .glass {
+    background: rgba(28, 28, 30, 0.78);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Empty state container */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.03), rgba(191, 90, 242, 0.03));
+  }
+  .dark .empty-state {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.06), rgba(191, 90, 242, 0.06));
+  }
+  .empty-state svg {
+    width: 3rem;
+    height: 3rem;
+    color: var(--color-text-faint);
+    margin-bottom: 1rem;
+  }
+
+  /* Gradient card background — subtle iridescent sheen */
+  .card-gradient {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: linear-gradient(135deg,
+      rgba(0, 122, 255, 0.04) 0%,
+      rgba(88, 86, 214, 0.04) 50%,
+      rgba(191, 90, 242, 0.03) 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  .card-gradient:hover::before {
+    opacity: 1;
+  }
+  .dark .card-gradient::before {
+    background: linear-gradient(135deg,
+      rgba(10, 132, 255, 0.08) 0%,
+      rgba(94, 92, 230, 0.06) 50%,
+      rgba(191, 90, 242, 0.06) 100%
+    );
+  }
+
+  /* Kanban column tints — dark mode aware */
+  .kanban-tint-blue   { background-color: rgba(0, 122, 255, 0.04); }
+  .kanban-tint-purple { background-color: rgba(191, 90, 242, 0.04); }
+  .kanban-tint-amber  { background-color: rgba(255, 159, 10, 0.04); }
+  .kanban-tint-green  { background-color: rgba(48, 209, 88, 0.04); }
+  .kanban-tint-red    { background-color: rgba(255, 69, 58, 0.04); }
+
+  .dark .kanban-tint-blue   { background-color: rgba(10, 132, 255, 0.08); }
+  .dark .kanban-tint-purple { background-color: rgba(191, 90, 242, 0.08); }
+  .dark .kanban-tint-amber  { background-color: rgba(255, 159, 10, 0.08); }
+  .dark .kanban-tint-green  { background-color: rgba(48, 209, 88, 0.08); }
+  .dark .kanban-tint-red    { background-color: rgba(255, 69, 58, 0.08); }
+
+  /* Owner section tint */
+  .owner-tint {
+    background-color: rgba(0, 122, 255, 0.03);
+  }
+  .dark .owner-tint {
+    background-color: rgba(10, 132, 255, 0.06);
+  }
+}
+
+/* ── Animation utilities ─────────────────────────────────────────── */
+
+/* Staggered entrance: apply --stagger-index via style attr */
+.animate-stagger {
+  animation: fade-in-up 0.4s ease-out both;
+  animation-delay: calc(var(--stagger-index, 0) * 60ms);
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Status indicator dot — base */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Bot avatar status ring */
+.avatar-ring {
+  position: relative;
+}
+.avatar-ring::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--ring-color, transparent);
+  pointer-events: none;
+}
+.avatar-ring-online { --ring-color: #22c55e; }
+.avatar-ring-busy { --ring-color: #f59e0b; }
+.avatar-ring-offline { --ring-color: #d2d2d7; }
+.avatar-ring-processing { --ring-color: #a855f7; }
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Dark mode ring color adjustments */
+.dark .avatar-ring-online { --ring-color: #30d158; }
+.dark .avatar-ring-busy { --ring-color: #ffd60a; }
+.dark .avatar-ring-offline { --ring-color: #48484a; }
+.dark .avatar-ring-processing { --ring-color: #bf5af2; }
+
+/* ── Gradient stat cards ───────────────────────────────────────── */
+.stat-gradient-0 { background: linear-gradient(135deg, #f0f5ff 0%, #e8ecff 100%); }
+.stat-gradient-1 { background: linear-gradient(135deg, #f0faf0 0%, #e0f5e8 100%); }
+.stat-gradient-2 { background: linear-gradient(135deg, #eefbf3 0%, #ddf5e5 100%); }
+.stat-gradient-3 { background: linear-gradient(135deg, #f8f0ff 0%, #ede0ff 100%); }
+.stat-gradient-4 { background: linear-gradient(135deg, #eef3ff 0%, #e0ecff 100%); }
+
+.dark .stat-gradient-0 { background: linear-gradient(135deg, rgba(0,122,255,0.08) 0%, rgba(0,82,171,0.06) 100%); }
+.dark .stat-gradient-1 { background: linear-gradient(135deg, rgba(48,209,88,0.08) 0%, rgba(26,122,26,0.06) 100%); }
+.dark .stat-gradient-2 { background: linear-gradient(135deg, rgba(48,209,88,0.06) 0%, rgba(26,122,26,0.05) 100%); }
+.dark .stat-gradient-3 { background: linear-gradient(135deg, rgba(191,90,242,0.08) 0%, rgba(94,45,145,0.06) 100%); }
+.dark .stat-gradient-4 { background: linear-gradient(135deg, rgba(0,122,255,0.06) 0%, rgba(0,82,171,0.05) 100%); }
+
+/* Soft glow on card hover */
+.card-hover:hover {
+  box-shadow: 0 4px 20px rgba(0, 122, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 4px 20px rgba(10, 132, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Team Workspace animations ───────────────────────────────────── */
+
+/* Connection flow animation */
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+.task-connection-active {
+  stroke-dasharray: 8 4;
+  animation: dash-flow 1s linear infinite;
+}
+.task-connection-idle {
+  stroke-dasharray: 4 8;
+  opacity: 0.3;
+}
+
+/* Bot claw snap when working */
+@keyframes claw-snap {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(-15deg); }
+  60% { transform: rotate(5deg); }
+}
+.bot-arm-working {
+  animation: claw-snap 1.2s ease-in-out infinite;
+}
+
+/* Bot idle bounce */
+@keyframes bot-idle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.bot-idle {
+  animation: bot-idle-bounce 3s ease-in-out infinite;
+}
+
+/* Antenna blink */
+@keyframes antenna-blink {
+  0%, 90%, 100% { opacity: 0.4; }
+  95% { opacity: 1; }
+}
+.bot-antenna {
+  animation: antenna-blink 3s ease-in-out infinite;
+}
+
+/* Active bot glow */
+.bot-active-glow {
+  filter: drop-shadow(0 0 6px var(--glow-color, rgba(0, 122, 255, 0.4)));
+}
+.dark .bot-active-glow {
+  filter: drop-shadow(0 0 8px var(--glow-color, rgba(10, 132, 255, 0.6)));
+}
+
+/* Workspace drag cursor */
+.workspace-dragging {
+  cursor: grabbing !important;
+}
+.workspace-dragging * {
+  cursor: grabbing !important;
+}

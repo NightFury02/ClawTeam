@@ -1,0 +1,59 @@
+api_url: "http://localhost:3000"
+invite_code: "TEST2024"
+
+bots:
+  - name: "DataAnalyzer"
+    email: "analyzer@test.com"
+    capabilities:
+      - name: "analyze_data"
+        description: "Statistical analysis on numerical data"
+        parameters: {}
+        async: false
+        estimatedTime: "5s"
+    strategy:
+      type: "fixed"
+      responses:
+        analyze_data:
+          sum: 150
+          avg: 30
+          min: 10
+          max: 50
+
+  - name: "ReportGenerator"
+    email: "reporter@test.com"
+    capabilities:
+      - name: "generate_report"
+        description: "Generate reports from analysis results"
+        parameters: {}
+        async: false
+        estimatedTime: "10s"
+    strategy:
+      type: "delay"
+      min_ms: 100
+      max_ms: 300
+      inner:
+        type: "fixed"
+        responses:
+          generate_report:
+            format: "pdf"
+            url: "/reports/test-report.pdf"
+
+  - name: "Notifier"
+    email: "notifier@test.com"
+    capabilities:
+      - name: "send_notification"
+        description: "Send notifications to channels"
+        parameters: {}
+        async: false
+        estimatedTime: "2s"
+    strategy:
+      type: "composite"
+      fail_rate: 0.0
+      min_ms: 50
+      max_ms: 150
+      inner:
+        type: "fixed"
+        responses:
+          send_notification:
+            sent: true
+            channel: "slack"

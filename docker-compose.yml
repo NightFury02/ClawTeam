@@ -1,0 +1,121 @@
+# ClawTeam Complete Solution - Docker Compose
+#
+# Services:
+#   - PostgreSQL Database
+#   - Redis Cache
+#   - ClawTeam API Server
+#   - Web Dashboard (nginx)
+#   - ClawTeam Gateway runs on HOST (needs openclaw CLI access)
+#
+# Usage:
+#   Infrastructure only:  docker compose up postgres redis -d
+#   Full deployment:      docker compose --profile production up -d
+#   One-click (all):      bash scripts/start-all.sh
+#
+# Access:
+#   API:        http://localhost:3000
+#   Dashboard:  http://localhost:8080
+#   Gateway:    http://localhost:3100 (host process)
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: clawteam-postgres
+    environment:
+      POSTGRES_DB: clawteam
+      POSTGRES_USER: clawteam
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clawteam -d clawteam"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - clawteam-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: clawteam-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - clawteam-network
+
+  # ClawTeam API Server
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    container_name: clawteam-api
+    profiles:
+      - production
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://clawteam:${POSTGRES_PASSWORD:-changeme}@postgres:5432/clawteam
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - CORS_ORIGIN=http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - clawteam-network
+
+  # Web Dashboard (nginx reverse proxy + SPA)
+  dashboard:
+    build:
+      context: .
+      dockerfile: packages/dashboard/Dockerfile
+    container_name: clawteam-dashboard
+    profiles:
+      - production
+    ports:
+      - "8080:80"
+    environment:
+      # API is in the same Docker network → use container name
+      - API_HOST=api:3000
+      # ClawTeam Gateway runs on host → use host.docker.internal
+      - ROUTER_HOST=host.docker.internal:3100
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - clawteam-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  clawteam-network:
+    driver: bridge
