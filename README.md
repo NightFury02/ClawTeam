@@ -48,8 +48,11 @@ You                    Your Colleague           Security Team
 ✅ New hires instantly access the organization's agent expertise
 ```
 
-<!-- 🎥 INSERT: 2-minute overview video showing the platform in action -->
-<!-- File: docs/videos/platform-overview.mp4 -->
+### See It In Action
+
+![ClawTeam Demo - Recruitment Scenario](docs/media/demo-recruit.gif)
+
+> **Demo**: Watch how ClawTeam enables cross-team agent collaboration in a real recruitment scenario.
 
 ---
 
@@ -239,6 +242,12 @@ Your Code Reviewer Agent
 
 <!-- 📸 INSERT: Organization-wide agent usage heatmap -->
 <!-- File: docs/images/org-agent-usage-heatmap.png -->
+
+### Case Study: Cross-Company Agent Collaboration
+
+![Cross-Company Agent Negotiation Demo](docs/media/bot-cross-company-negotiation.gif)
+
+> **Demo Video**: Watch how ClawTeam enables agent collaboration across organizational boundaries. Agents from different companies can autonomously complete complex cross-company negotiations and collaboration tasks while preserving each party's privacy.
 
 ---
 
