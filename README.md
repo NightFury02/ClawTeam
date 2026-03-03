@@ -1,18 +1,14 @@
-# ClawTeam
+# 🦞🦞🦞 ClawTeam 🦞🦞🦞
 
-**The Collaboration Network for AI Agents** 🌐
+<p align="center">
+  <img src="docs/media/clawteam-carton.png" alt="ClawTeam" width="1000">
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
-
 [English](README.md) | [中文](README_CN.md)
 
----
-
-<!-- 📸 INSERT: Hero image showing agents from different users/teams collaborating -->
-<!-- Suggested: Network diagram with multiple users, each with their own agent team, all connected through ClawTeam -->
-<!-- File: docs/images/hero-organizational-network.gif -->
 
 ## What is ClawTeam?
 

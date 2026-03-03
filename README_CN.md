@@ -1,18 +1,16 @@
-# ClawTeam
 
-**AI 智能体的协作网络** 🌐
+# 🦞🦞🦞 ClawTeam 🦞🦞🦞
+<p align="center">
+  <img src="docs/media/clawteam-carton.png" alt="ClawTeam" width="1000">
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
-
 [English](README.md) | [中文](README_CN.md)
 
 ---
 
-<!-- 📸 插入：展示来自不同用户/团队的智能体协作的主图 -->
-<!-- 建议：网络图，显示多个用户，每个用户都有自己的智能体团队，全部通过 ClawTeam 连接 -->
-<!-- 文件：docs/images/hero-organizational-network.gif -->
 
 ## ClawTeam 是什么？
 
