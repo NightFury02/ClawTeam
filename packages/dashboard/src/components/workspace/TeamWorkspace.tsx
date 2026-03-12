@@ -2,9 +2,10 @@ import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useBots } from '@/hooks/useBots';
 import { useTasks } from '@/hooks/useTasks';
-import type { Bot, Task, TaskStatus } from '@/lib/types';
+import { useMessages } from '@/hooks/useMessages';
+import type { Bot, Task, TaskStatus, Message, MessageType } from '@/lib/types';
 import { BotCharacter } from './BotCharacter';
-import { TaskConnection } from './TaskConnection';
+import { BotConnection, type InteractionType } from './BotConnection';
 import { WorkspaceTooltip } from './WorkspaceTooltip';
 
 interface TeamWorkspaceProps {
@@ -24,7 +25,15 @@ interface BotPosition {
 interface ConnectionInfo {
   fromBotId: string;
   toBotId: string;
-  task: Task;
+  interactionType: InteractionType;
+  isInternal: boolean;
+  connectionId: string;
+  /** Present for delegate connections */
+  task?: Task;
+  /** Present for message connections */
+  message?: Message;
+  /** Fade birth timestamp for fade-out animation */
+  fadeBirth?: number;
 }
 
 interface OwnerGroup {
@@ -115,6 +124,7 @@ const NO_OWNER = '__no_owner__';
 export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, selectedBotId }: TeamWorkspaceProps) {
   const { data: allBots = [] } = useBots();
   const { data: allTasks = [] } = useTasks();
+  const { data: allMessages = [] } = useMessages();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -127,6 +137,86 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [botOverrides, setBotOverrides] = useState<Record<string, { x: number; y: number }>>(() => loadSavedBotPositions());
   const [layoutGeneration, setLayoutGeneration] = useState(0);
+
+  // --- Zoom & Pan state (non-compact only) ---
+  const [zoom, setZoom] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [panDrag, setPanDrag] = useState<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+
+  // --- Container size observer (for responsive canvas) ---
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (compact || !containerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [compact]);
+
+  // --- Arrow fade-out tracking ---
+  // Track when tasks finish (completed/failed/cancelled) so arrows fade over 3 seconds
+  const FADE_DURATION = 3000;
+  const [fadingTasks, setFadingTasks] = useState<Record<string, number>>({});
+  const [, setFadeTick] = useState(0);
+  const prevTaskStatusRef = useRef<Map<string, TaskStatus>>(new Map());
+
+  useEffect(() => {
+    const now = Date.now();
+    const prevStatuses = prevTaskStatusRef.current;
+    const newFading: Record<string, number> = {};
+    let changed = false;
+
+    for (const task of allTasks) {
+      const prev = prevStatuses.get(task.id);
+      const isFinished = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled';
+      const wasActive = prev && (prev === 'pending' || prev === 'accepted' || prev === 'processing' || prev === 'waiting_for_input');
+
+      if (isFinished && wasActive && task.fromBotId !== task.toBotId) {
+        if (!fadingTasks[task.id]) {
+          newFading[task.id] = now;
+          changed = true;
+        }
+      }
+    }
+
+    // Update prev statuses
+    const nextMap = new Map<string, TaskStatus>();
+    for (const task of allTasks) {
+      nextMap.set(task.id, task.status);
+    }
+    prevTaskStatusRef.current = nextMap;
+
+    if (changed) {
+      setFadingTasks(prev => ({ ...prev, ...newFading }));
+    }
+  }, [allTasks, fadingTasks]);
+
+  // Tick timer for fade-out progress (200ms)
+  useEffect(() => {
+    const activeFading = Object.values(fadingTasks);
+    if (activeFading.length === 0) return;
+    const timer = setInterval(() => setFadeTick(t => t + 1), 200);
+    return () => clearInterval(timer);
+  }, [fadingTasks]);
+
+  // Clean up expired fading tasks
+  useEffect(() => {
+    const now = Date.now();
+    const expired = Object.entries(fadingTasks).filter(([, birth]) => now - birth > FADE_DURATION);
+    if (expired.length > 0) {
+      setFadingTasks(prev => {
+        const next = { ...prev };
+        for (const [id] of expired) delete next[id];
+        return next;
+      });
+    }
+  }, [fadingTasks]);
 
   const activeTasks = useMemo(() => {
     if (filterTaskId) {
@@ -149,18 +239,124 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
     return allBots;
   }, [allBots, activeTasks, filterTaskId]);
 
+  // Build botId → ownerEmail lookup for internal/external classification
+  const botOwnerMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const bot of allBots) {
+      map.set(bot.id, bot.ownerEmail || NO_OWNER);
+    }
+    return map;
+  }, [allBots]);
+
+  // Map MessageType → InteractionType
+  const MESSAGE_FADE_DURATION = 5000; // 5 seconds for message connection fade-out
+  const MSG_WINDOW = 5 * 60 * 1000; // 5 minutes window for message connections
+
   const connections = useMemo(() => {
     const conns: ConnectionInfo[] = [];
     const seen = new Set<string>();
+    // Track delegate directions to avoid duplicate task_notification lines
+    const delegateDirections = new Set<string>();
+
+    // --- 1. Active task connections (delegate) ---
     for (const task of activeTasks) {
       if (task.fromBotId === task.toBotId) continue;
-      const key = `${task.fromBotId}-${task.toBotId}-${task.id}`;
+      const key = `delegate-${task.fromBotId}-${task.toBotId}-${task.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      conns.push({ fromBotId: task.fromBotId, toBotId: task.toBotId, task });
+      delegateDirections.add(`${task.fromBotId}-${task.toBotId}`);
+      const fromOwner = botOwnerMap.get(task.fromBotId) || NO_OWNER;
+      const toOwner = botOwnerMap.get(task.toBotId) || NO_OWNER;
+      conns.push({
+        fromBotId: task.fromBotId, toBotId: task.toBotId,
+        interactionType: 'delegate',
+        connectionId: `delegate-${task.id}`,
+        task,
+        isInternal: fromOwner === toOwner,
+      });
     }
+
+    // --- 2. Fading task connections (recently completed/failed/cancelled) ---
+    for (const task of allTasks) {
+      if (!fadingTasks[task.id]) continue;
+      if (task.fromBotId === task.toBotId) continue;
+      const key = `delegate-${task.fromBotId}-${task.toBotId}-${task.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      delegateDirections.add(`${task.fromBotId}-${task.toBotId}`);
+      const fromOwner = botOwnerMap.get(task.fromBotId) || NO_OWNER;
+      const toOwner = botOwnerMap.get(task.toBotId) || NO_OWNER;
+      conns.push({
+        fromBotId: task.fromBotId, toBotId: task.toBotId,
+        interactionType: 'delegate',
+        connectionId: `delegate-${task.id}`,
+        task,
+        isInternal: fromOwner === toOwner,
+        fadeBirth: fadingTasks[task.id],
+      });
+    }
+
+    // --- 3. Message connections ---
+    const now = Date.now();
+    // Filter recent messages and group by (from, to, type), keep newest
+    const msgGroups = new Map<string, Message>();
+    for (const msg of allMessages) {
+      if (msg.fromBotId === msg.toBotId) continue;
+      const msgTime = new Date(msg.createdAt).getTime();
+      if (now - msgTime > MSG_WINDOW) continue;
+
+      const groupKey = `${msg.fromBotId}-${msg.toBotId}-${msg.type}`;
+      const existing = msgGroups.get(groupKey);
+      if (!existing || new Date(msg.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+        msgGroups.set(groupKey, msg);
+      }
+    }
+
+    // Map MessageType to InteractionType
+    const mapMsgType = (type: MessageType): InteractionType => {
+      switch (type) {
+        case 'direct_message': return 'direct_message';
+        case 'task_notification': return 'task_notification';
+        case 'broadcast': return 'broadcast';
+        case 'human_input_request':
+        case 'human_input_response': return 'human_input';
+        case 'system': return 'system';
+        case 'task_continuation': return 'task_continuation';
+      }
+    };
+
+    for (const [, msg] of msgGroups) {
+      const iType = mapMsgType(msg.type);
+
+      // Skip task_notification if there's already a delegate line in same direction
+      if (iType === 'task_notification' && delegateDirections.has(`${msg.fromBotId}-${msg.toBotId}`)) {
+        continue;
+      }
+
+      const connKey = `msg-${msg.fromBotId}-${msg.toBotId}-${iType}`;
+      if (seen.has(connKey)) continue;
+      seen.add(connKey);
+
+      const fromOwner = botOwnerMap.get(msg.fromBotId) || NO_OWNER;
+      const toOwner = botOwnerMap.get(msg.toBotId) || NO_OWNER;
+      const msgAge = now - new Date(msg.createdAt).getTime();
+      // Start fading after MESSAGE_FADE_DURATION
+      const fadeBirth = msgAge > MESSAGE_FADE_DURATION
+        ? new Date(msg.createdAt).getTime() + MESSAGE_FADE_DURATION
+        : undefined;
+
+      conns.push({
+        fromBotId: msg.fromBotId, toBotId: msg.toBotId,
+        interactionType: iType,
+        connectionId: `msg-${msg.messageId}`,
+        message: msg,
+        isInternal: fromOwner === toOwner,
+        fadeBirth,
+      });
+    }
+
     return conns;
-  }, [activeTasks]);
+  }, [activeTasks, allTasks, allMessages, fadingTasks, botOwnerMap]);
 
   const botActivity = useMemo(() => {
     const map = new Map<string, number>();
@@ -171,9 +367,11 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
     return map;
   }, [activeTasks]);
 
-  const canvasWidth = compact ? 600 : 900;
-  const canvasHeight = compact ? 260 : 540;
-  const botSize = compact ? 0.7 : 0.75;
+  // --- Adaptive canvas sizing ---
+  const manyBots = !compact && bots.length > 50;
+  const canvasWidth = compact ? 600 : (containerSize?.w ?? (manyBots ? 2200 : 1100));
+  const canvasHeight = compact ? 260 : (containerSize?.h ?? (manyBots ? 1500 : 680));
+  const botSize = compact ? 0.7 : (manyBots ? 0.75 : 0.75);
   const BOT_W = 60 * botSize;
   const BOT_H = 84 * botSize;
 
@@ -205,7 +403,7 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
   const autoGroupLayout = useMemo(() => {
     const groups: OwnerGroup[] = [];
     for (const [ownerEmail, groupBots] of ownerGroups) {
-      const cols = Math.min(groupBots.length, compact ? 3 : 4);
+      const cols = Math.min(groupBots.length, compact ? 3 : (manyBots ? 5 : 4));
       const rows = Math.ceil(groupBots.length / cols);
       const w = GROUP_PAD_X * 2 + cols * BOT_W + (cols - 1) * BOT_GAP;
       const h = GROUP_PAD_TOP + rows * BOT_H + (rows - 1) * BOT_GAP + GROUP_PAD_BOTTOM;
@@ -266,14 +464,14 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
     }
 
     return groups;
-  }, [ownerGroups, canvasWidth, canvasHeight, botSize, compact, BOT_W, BOT_H, GROUP_PAD_X, GROUP_PAD_TOP, GROUP_PAD_BOTTOM, BOT_GAP]);
+  }, [ownerGroups, canvasWidth, canvasHeight, botSize, compact, manyBots, BOT_W, BOT_H, GROUP_PAD_X, GROUP_PAD_TOP, GROUP_PAD_BOTTOM, BOT_GAP]);
 
   // Bot positions: auto-layout + overrides
   const positions = useMemo(() => {
     void layoutGeneration;
     const result: BotPosition[] = [];
     for (const group of autoGroupLayout) {
-      const cols = Math.min(group.bots.length, compact ? 3 : 4);
+      const cols = Math.min(group.bots.length, compact ? 3 : (manyBots ? 5 : 4));
       for (let i = 0; i < group.bots.length; i++) {
         const col = i % cols;
         const row = Math.floor(i / cols);
@@ -291,7 +489,7 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
       }
     }
     return result;
-  }, [autoGroupLayout, botActivity, botOverrides, compact, BOT_W, BOT_H, GROUP_PAD_X, GROUP_PAD_TOP, BOT_GAP, layoutGeneration]);
+  }, [autoGroupLayout, botActivity, botOverrides, compact, manyBots, BOT_W, BOT_H, GROUP_PAD_X, GROUP_PAD_TOP, BOT_GAP, layoutGeneration]);
 
   // Derive group boxes from actual bot positions (dynamic sizing)
   const groupBoxes = useMemo(() => {
@@ -475,28 +673,134 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
   );
 
   const handleConnectionHover = useCallback(
-    (e: React.MouseEvent, task: Task) => {
+    (e: React.MouseEvent, conn: ConnectionInfo) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setTooltip({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        content: (
-          <div>
-            <p className="font-semibold text-gray-900">{task.capability || 'Task'}</p>
-            <p className="text-gray-500">Priority: {task.priority}</p>
-            <p className="text-gray-500">Status: {task.status}</p>
-            <p className="text-gray-500">
-              {task.fromBotName || task.fromBotId} &rarr; {task.toBotName || task.toBotId}
-            </p>
-          </div>
-        ),
-      });
+
+      if (conn.task) {
+        setTooltip({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          content: (
+            <div>
+              <p className="font-semibold text-gray-900">{conn.task.capability || 'Task'}</p>
+              <p className="text-gray-500">Priority: {conn.task.priority}</p>
+              <p className="text-gray-500">Status: {conn.task.status}</p>
+              <p className="text-gray-500">
+                {conn.task.fromBotName || conn.task.fromBotId} &rarr; {conn.task.toBotName || conn.task.toBotId}
+              </p>
+            </div>
+          ),
+        });
+      } else if (conn.message) {
+        const typeLabel = conn.interactionType.replace(/_/g, ' ');
+        setTooltip({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          content: (
+            <div>
+              <p className="font-semibold text-gray-900" style={{ textTransform: 'capitalize' }}>{typeLabel}</p>
+              <p className="text-gray-500">
+                {conn.message.fromBotName || conn.message.fromBotId} &rarr; {conn.message.toBotName || conn.message.toBotId}
+              </p>
+            </div>
+          ),
+        });
+      }
     },
     [],
   );
 
   const hideTooltip = useCallback(() => setTooltip(null), []);
+
+  // --- Keyboard: Space key for pan mode ---
+  useEffect(() => {
+    if (compact) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        setSpaceHeld(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceHeld(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [compact]);
+
+  // --- Wheel handler: Ctrl/Meta+wheel = zoom, plain wheel = pan ---
+  useEffect(() => {
+    if (compact || !svgRef.current) return;
+    const svg = svgRef.current;
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const rect = svg.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const svgPt = screenToSvg(svg, e.clientX, e.clientY);
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom((prev) => {
+          const newZoom = Math.max(0.5, Math.min(3, prev + delta));
+          const scale = newZoom / prev;
+          setPanX((px) => svgPt.x - (svgPt.x - px) / scale);
+          setPanY((py) => svgPt.y - (svgPt.y - py) / scale);
+          return newZoom;
+        });
+      } else {
+        e.preventDefault();
+        const factor = 1 / zoom;
+        setPanX((px) => px + e.deltaX * factor);
+        setPanY((py) => py + e.deltaY * factor);
+      }
+    };
+    svg.addEventListener('wheel', handleWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', handleWheel);
+  }, [compact, zoom]);
+
+  // --- Pan drag handlers (Space + mouse drag) ---
+  const handlePanDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      if (compact || !spaceHeld) return;
+      e.preventDefault();
+      setPanDrag({ startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY });
+    },
+    [compact, spaceHeld, panX, panY],
+  );
+
+  const handlePanDragMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!panDrag || !svgRef.current) return;
+      const svg = svgRef.current;
+      const startSvg = screenToSvg(svg, panDrag.startX, panDrag.startY);
+      const curSvg = screenToSvg(svg, e.clientX, e.clientY);
+      setPanX(panDrag.startPanX - (curSvg.x - startSvg.x));
+      setPanY(panDrag.startPanY - (curSvg.y - startSvg.y));
+    },
+    [panDrag],
+  );
+
+  const handlePanDragEnd = useCallback(() => {
+    setPanDrag(null);
+  }, []);
+
+  // --- Zoom controls ---
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(3, z * 1.25));
+  }, []);
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(0.5, z / 1.25));
+  }, []);
+  const handleZoomReset = useCallback(() => {
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+  }, []);
 
   const extraCount = compact && bots.length > 8 ? bots.length - 8 : 0;
   const hasSavedPositions = Object.keys(botOverrides).length > 0;
@@ -541,16 +845,18 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
 
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+        viewBox={compact ? `0 0 ${canvasWidth} ${canvasHeight}` : `${panX} ${panY} ${canvasWidth / zoom} ${canvasHeight / zoom}`}
         className="w-full"
         style={{
           height: compact ? 260 : undefined,
           maxHeight: compact ? 260 : 'calc(100vh - 200px)',
-          userSelect: dragState ? 'none' : undefined,
+          userSelect: (dragState || panDrag) ? 'none' : undefined,
+          cursor: spaceHeld ? (panDrag ? 'grabbing' : 'grab') : undefined,
         }}
-        onMouseMove={dragEnabled ? handleSvgMouseMove : undefined}
-        onMouseUp={dragEnabled ? handleSvgMouseUp : undefined}
-        onMouseLeave={dragEnabled ? handleSvgMouseLeave : undefined}
+        onMouseDown={!compact && spaceHeld ? handlePanDragStart : undefined}
+        onMouseMove={dragEnabled ? (panDrag ? handlePanDragMove : handleSvgMouseMove) : undefined}
+        onMouseUp={dragEnabled ? (panDrag ? handlePanDragEnd : handleSvgMouseUp) : undefined}
+        onMouseLeave={dragEnabled ? (panDrag ? handlePanDragEnd : handleSvgMouseLeave) : undefined}
       >
         {/* Layer 1 (backmost): Group boxes — dynamically sized from bot positions */}
         {groupBoxes.map((box) => {
@@ -620,19 +926,46 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
           const from = posMap.get(conn.fromBotId);
           const to = posMap.get(conn.toBotId);
           if (!from || !to) return null;
+
+          // Compute fade opacity
+          let fadeOpacity: number | undefined;
+          if (conn.interactionType === 'delegate' && conn.task) {
+            // Task fade: use fadingTasks tracking
+            const taskFadeBirth = fadingTasks[conn.task.id];
+            if (taskFadeBirth) {
+              const elapsed = Date.now() - taskFadeBirth;
+              fadeOpacity = Math.max(0, 1 - elapsed / FADE_DURATION);
+              if (fadeOpacity <= 0) return null;
+            }
+          } else if (conn.fadeBirth) {
+            // Message fade: fade based on age
+            const elapsed = Date.now() - conn.fadeBirth;
+            const msgFadeDuration = MSG_WINDOW - MESSAGE_FADE_DURATION;
+            fadeOpacity = Math.max(0, 1 - elapsed / msgFadeDuration);
+            if (fadeOpacity <= 0) return null;
+          }
+
+          const label = conn.task?.capability;
+          const clickHandler = conn.task
+            ? () => navigate(`/tasks/${conn.task!.id}`)
+            : undefined;
+
           return (
-            <TaskConnection
-              key={conn.task.id}
+            <BotConnection
+              key={conn.connectionId}
               fromX={from.x}
               fromY={from.y}
               toX={to.x}
               toY={to.y}
-              status={conn.task.status}
-              taskId={conn.task.id}
-              label={conn.task.capability}
-              onMouseEnter={(e) => handleConnectionHover(e, conn.task)}
+              interactionType={conn.interactionType}
+              connectionId={conn.connectionId}
+              status={conn.task?.status}
+              label={label}
+              isInternal={conn.isInternal}
+              fadeOpacity={fadeOpacity}
+              onMouseEnter={(e) => handleConnectionHover(e, conn)}
               onMouseLeave={hideTooltip}
-              onClick={() => navigate(`/tasks/${conn.task.id}`)}
+              onClick={clickHandler}
             />
           );
         })}
@@ -676,6 +1009,42 @@ export function TeamWorkspace({ compact = false, filterTaskId, onBotSelect, sele
           </text>
         )}
       </svg>
+
+      {/* Zoom controls (non-compact only) */}
+      {!compact && (
+        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-sm px-1 py-0.5">
+          <button
+            onClick={handleZoomOut}
+            disabled={zoom <= 0.5}
+            className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+            title="Zoom out"
+          >
+            −
+          </button>
+          <span className="text-xs text-gray-500 w-10 text-center tabular-nums select-none">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            disabled={zoom >= 3}
+            className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+            title="Zoom in"
+          >
+            +
+          </button>
+          <div className="w-px h-4 bg-gray-200 mx-0.5" />
+          <button
+            onClick={handleZoomReset}
+            disabled={zoom === 1 && panX === 0 && panY === 0}
+            className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Reset view"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 8a6 6 0 0 1 10.2-4.3L14 2v4h-4l1.7-1.7A4.5 4.5 0 1 0 12.5 8" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {tooltip && (
         <WorkspaceTooltip

@@ -463,6 +463,60 @@ body {
   opacity: 0.3;
 }
 
+/* Internal connection (same ownerEmail): subtle dashed flow */
+.task-connection-internal-active {
+  animation: dash-flow 1.8s linear infinite;
+  opacity: 0.5;
+}
+
+/* ── Non-delegate connection type animations ──────────────────── */
+
+/* Direct message: solid line, subtle pulse */
+.connection-direct-message {
+  opacity: 0.7;
+}
+
+/* Task notification: slow dash flow */
+@keyframes dash-flow-slow {
+  to { stroke-dashoffset: -14; }
+}
+.connection-task-notification {
+  animation: dash-flow-slow 2s linear infinite;
+  opacity: 0.6;
+}
+
+/* Broadcast: very slow dash flow */
+@keyframes dash-flow-very-slow {
+  to { stroke-dashoffset: -12; }
+}
+.connection-broadcast {
+  animation: dash-flow-very-slow 3s linear infinite;
+  opacity: 0.45;
+}
+
+/* Human input: pulse blink effect */
+@keyframes connection-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+}
+.connection-human-input {
+  animation: connection-pulse 1.5s ease-in-out infinite;
+}
+
+/* System: static, low visibility */
+.connection-system {
+  opacity: 0.3;
+}
+
+/* Task continuation: medium-speed dash flow */
+@keyframes dash-flow-medium {
+  to { stroke-dashoffset: -18; }
+}
+.connection-task-continuation {
+  animation: dash-flow-medium 1.5s linear infinite;
+  opacity: 0.6;
+}
+
 /* Bot claw snap when working */
 @keyframes claw-snap {
   0%, 100% { transform: rotate(0deg); }
